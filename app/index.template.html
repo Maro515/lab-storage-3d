@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ラボ収納マップ 3D</title>
+<style>
+:root{
+  --navy:#14283f; --navy-soft:#33506f; --ink:#1d2733; --muted:#5d6b7a; --line:#d7dde3;
+  --bg:#f3f5f7; --card:#fcfdff; --acc:#0a6194; --acc-soft:#e3eff7; --green:#047857;
+  --amber:#b7791f; --radius:6px;
+  font-family: "Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+  color:var(--ink);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;background:var(--bg);overflow:hidden}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+header{height:52px;background:var(--navy);color:#fff;display:flex;align-items:center;gap:14px;padding:0 14px}
+header h1{font-size:16px;font-weight:700;margin:0;letter-spacing:.02em;white-space:nowrap}
+header .sub{font-size:12px;color:#b9c6d4;white-space:nowrap}
+header .sp{flex:1}
+.hbtn{background:transparent;border:1px solid #4a6482;color:#fff;border-radius:var(--radius);padding:6px 11px;font-size:13px;cursor:pointer;white-space:nowrap}
+.hbtn:hover{background:#21405f}
+#toggle-side{display:none}
+
+main{position:absolute;top:52px;left:0;right:0;bottom:0;display:flex}
+aside#side{width:310px;flex:none;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.side-top{padding:12px 12px 8px;border-bottom:1px solid var(--line)}
+#q{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14px;background:#fff}
+#rooms{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+.side-opts{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:12px;color:var(--muted)}
+.side-opts label{display:flex;gap:6px;align-items:center;cursor:pointer}
+#list{list-style:none;margin:0;padding:4px 0 16px;overflow:auto;flex:1;min-height:0}
+#list .group{font-size:12px;font-weight:700;color:var(--navy-soft);padding:12px 14px 4px;position:sticky;top:0;background:var(--card)}
+.unit-row{display:flex;align-items:center;gap:8px;padding:7px 14px;cursor:pointer;font-size:13px;border-left:3px solid transparent}
+.unit-row:hover{background:#f0f4f8}
+.unit-row[aria-current="true"]{background:var(--acc-soft);border-left-color:var(--acc)}
+.unit-row .dot{width:9px;height:9px;border-radius:2px;flex:none}
+.unit-row .uid{font-weight:700;font-variant-numeric:tabular-nums;width:46px;flex:none;color:var(--navy)}
+.unit-row .uname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.unit-row .temp{font-size:12px;font-weight:700;color:#1f5f99;font-variant-numeric:tabular-nums;white-space:nowrap}
+.unit-row .tag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:0 4px}
+.unit-row.has-memo .uid::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--amber);margin-left:4px;vertical-align:middle}
+#list .empty{padding:20px 14px;color:var(--muted);font-size:13px}
+.side-foot{border-top:1px solid var(--line);padding:10px 12px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.btn{border:1px solid var(--line);background:#fff;border-radius:var(--radius);padding:6px 10px;cursor:pointer;font-size:12px}
+.btn:hover{background:#f0f4f8}
+.btn.small{padding:3px 8px}
+
+#view{position:relative;flex:1;min-width:0;overflow:hidden}
+#view canvas{display:block;width:100%;height:100%;touch-action:none}
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.room-label{position:absolute;left:0;top:0;font-size:13px;font-weight:700;color:var(--navy);background:rgba(252,253,255,.86);border:1px solid var(--line);padding:2px 8px;border-radius:4px;white-space:nowrap}
+.unit-tag{position:absolute;left:0;top:0;font-size:12px;font-weight:700;color:#fff;background:var(--acc);padding:2px 7px;border-radius:4px;white-space:nowrap}
+.hover-tip{position:absolute;left:0;top:0;pointer-events:none;background:var(--navy);color:#fff;font-size:12px;padding:4px 8px;border-radius:4px;white-space:nowrap;z-index:5}
+
+.toolbar{position:absolute;left:12px;bottom:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;max-width:calc(100% - 24px)}
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.seg .lbl{font-size:12px;color:var(--muted);padding:6px 8px;border-right:1px solid var(--line);white-space:nowrap}
+.seg button{border:0;background:transparent;padding:6px 10px;font-size:12px;cursor:pointer;white-space:nowrap}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--navy);color:#fff}
+.tog{border:1px solid var(--line);background:var(--card);border-radius:var(--radius);padding:6px 10px;font-size:12px;cursor:pointer}
+.tog[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+#legend{position:absolute;right:12px;bottom:12px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:8px 10px;display:grid;grid-template-columns:repeat(2,auto);gap:4px 14px;font-size:12px}
+#legend .lg{display:flex;align-items:center;gap:6px;white-space:nowrap}
+#legend i{width:12px;height:12px;border-radius:2px;display:inline-block}
+#loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px;background:var(--bg)}
+
+#panel{position:absolute;top:12px;right:12px;width:320px;max-height:calc(100% - 24px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 2px 10px rgba(20,40,63,.10)}
+#panel .ph{display:flex;align-items:flex-start;gap:10px;padding:12px 12px 10px;border-bottom:1px solid var(--line)}
+#p-id{font-weight:800;color:#fff;background:var(--acc);border-radius:4px;padding:2px 7px;font-size:13px;flex:none}
+#p-name{font-size:15px;font-weight:700;line-height:1.35;flex:1}
+#p-close{border:0;background:transparent;font-size:18px;line-height:1;cursor:pointer;color:var(--muted);padding:2px 4px}
+#panel .pb{padding:10px 12px 12px}
+#p-kind{display:inline-block;font-size:12px;border:1px solid var(--chip);color:var(--chip);border-radius:3px;padding:1px 6px;margin-bottom:8px}
+#p-props{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;margin:0;font-size:13px}
+#p-props dt{color:var(--muted)}
+#p-props dd{margin:0;font-variant-numeric:tabular-nums}
+#panel h3{font-size:12px;color:var(--navy-soft);margin:14px 0 6px}
+#panel .muted{color:var(--muted);font-size:13px;margin:0;line-height:1.55}
+#p-note{font-size:12px;color:var(--amber);margin:8px 0 0}
+#p-memo{width:100%;min-height:72px;border:1px solid var(--line);border-radius:var(--radius);padding:7px 8px;font:inherit;font-size:13px;resize:vertical}
+.sections{margin:0;padding-left:18px;font-size:13px;line-height:1.6}
+.pf{display:flex;gap:8px;margin-top:10px}
+
+@media (max-width:760px){
+  header .sub{display:none}
+  #toggle-side{display:inline-block}
+  aside#side{position:absolute;z-index:20;top:0;bottom:0;left:0;width:86%;max-width:320px;transform:translateX(-100%);transition:transform .2s ease-out;box-shadow:2px 0 12px rgba(0,0,0,.12)}
+  body.side-open aside#side{transform:none}
+  #panel{left:8px;right:8px;width:auto;top:auto;bottom:8px;max-height:55%}
+  #legend{display:none!important}
+  .toolbar{left:8px;bottom:8px}
+  .hbtn.wide{display:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <button class="hbtn" id="toggle-side" aria-label="一覧を開く">一覧</button>
+  <h1>ラボ収納マップ 3D</h1>
+  <span class="sub">2026-10-18 スキャン準拠 ・ Blender再構築モデル</span>
+  <span class="sp"></span>
+  <button class="hbtn" id="v-overview">全体</button>
+  <button class="hbtn" id="v-top">真上</button>
+  <button class="hbtn wide" id="v-shot">画像を保存</button>
+</header>
+<main>
+  <aside id="side">
+    <div class="side-top">
+      <input id="q" type="search" placeholder="ID・名前・種別・メモで検索" autocomplete="off">
+      <div id="rooms"></div>
+      <div class="side-opts">
+        <label><input type="checkbox" id="storage-only"> 収納対象のみ</label>
+        <span id="count"></span>
+      </div>
+    </div>
+    <ul id="list"></ul>
+    <div class="side-foot">
+      <span>収納量メモ <b id="memo-count">0</b> 件</span>
+      <button class="btn" id="export-memo">メモをJSONで書き出す</button>
+    </div>
+  </aside>
+  <section id="view">
+    <div id="labels"></div>
+    <div id="loading">3Dモデルを準備しています…</div>
+    <div class="toolbar">
+      <div class="seg"><span class="lbl">壁</span><button data-walls="full">全高</button><button data-walls="low">腰高</button><button data-walls="off">なし</button></div>
+      <button class="tog" id="t-ceiling" aria-pressed="false">天井</button>
+      <button class="tog" id="t-color" aria-pressed="false">種別で色分け</button>
+      <button class="tog" id="t-labels" aria-pressed="true">ラベル</button>
+    </div>
+    <div id="legend" hidden></div>
+    <div id="panel" hidden>
+      <div class="ph"><span id="p-id"></span><span id="p-name"></span><button id="p-close" aria-label="閉じる">×</button></div>
+      <div class="pb">
+        <span id="p-kind"></span>
+        <dl id="p-props"></dl>
+        <p id="p-note" hidden></p>
+        <h3>収納量（区画・段数）</h3>
+        <div id="p-cap"></div>
+        <h3>収納量メモ（この端末に保存）</h3>
+        <textarea id="p-memo" placeholder="例: 上段4段・下段引き出し2、ラック5段×奥2列 など"></textarea>
+        <div class="pf"><button class="btn" id="p-focus">この什器に寄る</button></div>
+      </div>
+    </div>
+  </section>
+</main>
+<script>window.__LAB_META__=/*META*/null;window.__LAB_SPEC__=/*SPEC*/null;window.__LAB_GLB__="/*GLB*/";</script>
+<script>/*APP*/</script>
+</body>
+</html>

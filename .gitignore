@@ -1,0 +1,9 @@
+# 元スキャン（写真テクスチャ付き・47MB）は公開しない。アプリは使っていない
+scan/
+# esbuild の実行ファイル（端末依存）。matsuyama-gta/build/node_modules/@esbuild/darwin-arm64/bin/esbuild からコピー
+build/bin/
+build/app.bundle.js
+model/*.blend1
+.DS_Store
+.claude/
+__pycache__/
